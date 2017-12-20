@@ -1,0 +1,57 @@
+---
+title: "Exploração dos Dados de Reclamações de Órgãos Federais"
+output: html_notebook
+---
+
+```{r, warning = FALSE}
+library(tidyverse, warn.conflicts = FALSE)
+library(stringr)
+
+theme_set(theme_bw())
+```
+
+# Exploração dos Dados
+
+## Formato
+
+Dados obtidos a parte do site do ReclameAqui.
+```{r}
+rec_completo <- read_csv("reclamacoes-raw.csv", col_types = "cccc")
+glimpse(rec_completo)
+```
+
+## Limpeza
+
+Vamos criar as seguintes colunas:
+
+- Tamanho de cada reclamação.
+- Nome do órgão extraído da URL da coluna link.
+- Quantidade de letras em caixa alta.
+- ID de cada reclamação.
+```{r}
+rec_completo <- rec_completo %>% 
+    mutate(comprimento_reclamacao = str_length(reclamacao), 
+           nome_orgao = str_split(link, "/") %>% map_chr(~ .[[5]]),
+           quantidade_caixa_alta = str_count(rec_completo$reclamacao, "\\b[A-Z\u00C0-\u00DC]{2,}\\b"),
+           id = as.character(1:n()))
+```
+
+## Visualização
+
+### Histograma dos tamanhos das reclamações.
+```{r}
+ggplot(data = rec_completo, mapping = aes(x = comprimento_reclamacao)) +
+    geom_histogram(fill = "purple", 
+                   colour = "black",
+                   binwidth = 300)
+```
+
+### Tamanho das reclamações por órgão.
+```{r}
+rec_completo %>%
+    ggplot(aes(reorder(nome_orgao, comprimento_reclamacao), comprimento_reclamacao, colour = nome_orgao)) +
+    geom_jitter() +
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank())
+```
