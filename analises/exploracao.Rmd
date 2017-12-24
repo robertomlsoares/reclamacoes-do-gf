@@ -1,0 +1,294 @@
+---
+title: "Exploração dos Dados de Reclamações de Órgãos Federais"
+output: html_notebook
+---
+
+```{r, message = FALSE}
+library(tidyverse, warn.conflicts = FALSE)
+library(stringr)
+
+theme_set(theme_bw())
+```
+
+Equipe:
+
+- André Gonçalves
+- Bianca Lima
+- Gustavo Alves
+- Léo Vital
+- Roberto Soares
+
+Iremos utilizar visualização de dados e estatística para explorar e ter uma visão geral dos dados que iremos utilizar posteriormente na análise de sentimentos.
+Os dois conjuntos de dados são:
+
+- Dados extraídos através de um script do site do ReclameAqui. São 16 reclamações por órgão e 20 órgãos, totalizando 320 reclamações - "reclamacoes-raw"
+- Dados das reclamações que foram avaliadas por alunos - "experimento-de-avaliacao".
+
+Vamos começar explorando o primeiro conjunto de dados: "reclamacoes-raw".
+
+# Explorando "reclamacoes-raw"
+
+## Formato
+
+Dados obtidos a partir do site do ReclameAqui.
+```{r}
+rec_completo <- read_csv("../data/reclamacoes-raw/reclamacoes-raw.csv", col_types = "cccc")
+glimpse(rec_completo)
+```
+
+## Limpeza
+
+Vamos criar as seguintes colunas para ajudar nas análises:
+
+- Nome do órgão extraído da URL da coluna link (essa nova coluna é mais intuitiva de se trabalhar do que o link).
+- Quantidade de palavras em caixa alta.
+- Quantidade de palavras.
+- ID de cada reclamação.
+
+É importante ressaltar o que estamos considerando uma palavra e uma palavra em caixa alta. É considerada e contada como uma palavra em caixa alta a palavra que possui todos seus caracteres em caixa alta com um mínimo de 2 caracteres que não são separados por espaços ou quebras de linha (inclusive caracteres com acento). Entretanto, palavras com apenas um caractere em caixa alta não são consideradas para não confundirmos começos de frase após um ponto com uma palavra em caixa alta. Similarmente, uma palavra é contada como palavra se possuir 2 ou mais caracteres que não são separados por espaços ou quebras de linha (inclusive caracteres com acento).
+
+Além disso, nós mudamos os nomes dos órgãos para suas siglas para os gráficos ficarem mais legíveis.
+```{r}
+rec_completo <- rec_completo %>% 
+    mutate(nome_orgao = str_split(link, "/") %>% map_chr(~ .[[5]]),
+           quantidade_caixa_alta = str_count(rec_completo$reclamacao, "\\b[A-Z\u00C0-\u00DC]{2,}\\b"),
+           quantidade_palavras = str_count(rec_completo$reclamacao, "\\b[a-z\u00E0-\u00FCA-Z\u00C0-\u00DC]{2,}\\b"),
+           id = as.character(1:n()))
+
+rec_completo$nome_orgao[rec_completo$nome_orgao == "ana-agencia-nacional-de-aguas"] <- "ANA"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "anac-agencia-nacional-de-aviacao-civil"] <- "ANAC"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "anp-agencia-nacional-do-petroleo-gas-natural-e-biocombustiv"] <- "ANP"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "anvisa-agencia-nacional-de-vigilancia-sanitaria"] <- "ANVISA"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "inss-ministerio-da-previdencia-social"] <- "INSS"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "ministerio-da-cultura"] <- "MinC"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "ministerio-da-fazenda"] <- "MF"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "ministerio-da-previdencia-social"] <- "MPS"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "ministerio-da-saude"] <- "MS"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "ministerio-das-comunicacoes"] <- "MC"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "ministerio-do-planejamento"] <- "MP"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "pf-departamento-de-policia-federal"] <- "PF"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "prf-departamento-de-policia-rodoviaria-federal"] <- "PRF"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "serpro-servico-federal-de-processamento-de-dados"] <- "Serpro"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "stf-supremo-tribunal-federal"] <- "STF"
+rec_completo$nome_orgao[rec_completo$nome_orgao == "unifesp-universidade-federal-de-sao-paulo"] <- "Unifesp"
+```
+
+## Visualização
+
+### Histograma dos tamanhos das reclamações.
+
+Vamos começar a análise com um histograma para termos uma ideia de como é a distribuição do tamanho das reclamações. Daqui em diante, tamanho se refere a quantidade de palavras nas reclamações.
+```{r}
+ggplot(data = rec_completo, mapping = aes(x = quantidade_palavras)) +
+    geom_histogram(fill = "purple", 
+                   colour = "black",
+                   binwidth = 100) +
+    labs(x = "Palavras nas Reclamações", y = "Quantidade") +
+    scale_x_continuous(breaks = pretty(rec_completo$quantidade_palavras, n = 15)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Podemos observar que a grande maioria das reclamações possuem menos de 300 palavras, algumas outras estão entre 400 e 600 e algumas exceções estão acima disso. Por exemplo, existe uma reclamação com mais ou menos 2800 palavras.
+
+Vamos checar a média e mediana dos tamanhos das reclamações.
+```{r}
+rec_completo %>% 
+    summarise(Média = mean(quantidade_palavras), 
+              Mediana = median(quantidade_palavras))
+```
+
+A média possui um valor bem maior do que a mediana devido às poucas reclamações que possuem tamanho muito grande (por exemplo, a reclamação de 2800 palavras). 
+
+### Tamanho das reclamações por órgão.
+
+Agora vamos observar o tamanho das reclamações por órgão.
+```{r}
+rec_completo %>%
+    ggplot(aes(nome_orgao, quantidade_palavras, colour = nome_orgao)) +
+    geom_jitter() +
+    labs(x = "Órgão", y = "Tamanho das Reclamações") +
+    scale_y_continuous(breaks = pretty(rec_completo$quantidade_palavras, n = 15)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Podemos observar que alguns órgãos possuem poucas reclamações grandes (por exemplo, a ANP) enquanto os outros possuem uma maior quantidade de reclamações grandes. Também podemos ver novamente a reclamação de 2800 palavras e que ela pertence a ANAC. Por fim, não é possível fazer nenhuma ligação ou generalização entre algum órgão e o tamanho das reclamações que ele recebe (observando apenas o gráfico acima).
+
+### Histograma das palavras em caixa alta
+
+Nós achamos interessante incluir essa variável de quantidade de palavras em caixa alta na análise de sentimentos para estudar se ela implica em uma reclamação com maior nível de insatisfação. Então vamos dar uma olhada em sua distribuição através de um histograma.
+```{r}
+ggplot(data = rec_completo, mapping = aes(x = quantidade_caixa_alta)) +
+    geom_histogram(fill = "purple", 
+                   colour = "black",
+                   binwidth = 10) +
+    labs(x = "Palavras em Caixa Alta", y = "Quantidade")
+```
+
+Podemos observar que a grande maioria (mais de 200 reclamações) não possuem nenhuma palavra em caixa alta. Algumas poucas reclamações possuem 100 ou mais palavras em caixa alta.
+
+Vamos checar a média e mediana da quantidade de palavras em caixa alta.
+```{r}
+rec_completo %>% 
+    summarise(Média = mean(quantidade_caixa_alta),
+              Mediana = median(quantidade_caixa_alta))
+```
+
+Como esperado, a média e mediana nos confirmam que a grande maioria das reclamações não possuem nenhuma ou quase nenhuma palavra em caixa alta.
+
+### Histograma das palavras em caixa alta (proporção)
+
+Para complementar o gráfico anterior, vamos analisar a mesma variável só que agora em proporção a quantidade de palavras da reclamação, ou seja, quantidade de palavras em caixa alta / quantidade de palavras.
+```{r}
+ggplot(data = rec_completo, mapping = aes(x = rec_completo$quantidade_caixa_alta / rec_completo$quantidade_palavras)) +
+    geom_histogram(fill = "purple", 
+                   colour = "black",
+                   binwidth = 0.1) +
+    labs(x = "Palavras em Caixa Alta", y = "Quantidade") +
+    scale_x_continuous(labels = scales::percent)
+```
+
+Não há novidades em relação ao histograma que conta a quantidade absoluta, a distribuição ainda é a mesma.
+
+### Quantidade de palavras em caixa alta por órgão
+
+Agora vamos analisar a quantidade de palavras em caixa alta por órgão.
+```{r}
+rec_completo %>%
+    ggplot(aes(nome_orgao, quantidade_caixa_alta, colour = nome_orgao)) +
+    geom_jitter() +
+    labs(x = "Órgão", y = "Palavras em Caixa Alta") +
+    scale_y_continuous(breaks = pretty(rec_completo$quantidade_caixa_alta, n = 15)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Podemos ver que apesar de a maioria dos órgãos não possuírem tantas palavras em caixa alta nas reclamações, existe uma quantidade considerável acima da faixa de 40 palavras ou até mesmo de 20 palavras, mas é preciso lembrar que siglas como ENEM, MEC, etc, estão sendo contadas como palavras em caixa alta e essas siglas são neutras em relação ao nível de insatisfação.
+
+# Explorando "experimento-de-avaliacao"
+
+## Formato
+
+Dados obtidos a partir de avaliações dos alunos em sala de aula.
+```{r}
+avaliacoes <- read_csv("../data/experimento-avaliacao-humana/experimento-de-avaliacao.csv", col_types = "ccd")
+glimpse(avaliacoes)
+```
+
+## Limpeza
+
+Primeiramente iremos renomear as colunas.
+```{r}
+avaliacoes = avaliacoes %>% 
+    select(avaliador = "Sua matrícula", 
+           id_reclamacao = "Id da reclamação", 
+           insatisfacao = "Insatisfação")
+```
+
+Na avaliação em sala, as reclamações com ID de 1 a 5 foram usadas apenas para calibragem do que os avaliadores consideram um 1 ou um 5, então iremos desconsiderá-las na nossa análise.
+
+```{r}
+avaliacoes = avaliacoes %>% 
+    filter(!(id_reclamacao %in% 1:5))
+```
+
+Isso nos deixa com um total de 154 avaliações.
+
+## Visualização
+
+### Quantidade de avaliações por reclamação.
+
+Vamos checar quantas vezes cada reclamação foi avaliada.
+```{r}
+avaliacoes %>%
+    group_by(id_reclamacao) %>% 
+    summarize(count=n()) %>% 
+    ggplot(aes(x=reorder(id_reclamacao, count), y = count)) +
+    geom_bar(stat = "identity", colour="black", fill="purple") +
+    labs(x = "ID Reclamação", y = "Quantidade de Vezes Avaliada")
+```
+
+Podemos observar que cada reclamação foi avaliada pelo menos 10 vezes e que a reclamação de ID 9 foi avaliada mais de 20 vezes. A média e mediana provavelmente estão por volta do número 15, mas vamos checar para ter certeza.
+
+```{r}
+avaliacoes %>% 
+    group_by(id_reclamacao) %>%
+    count() %>%
+    ungroup() %>%
+    summarise(Média = mean(n), 
+              Mediana = median(n))
+```
+
+Como esperado após se ver o gráfico de barras, em média cada reclamação foi avaliada 15 vezes.
+
+### Quantidade de avaliações por avaliador.
+
+Vamos checar quantas vezes cada avaliador avaliou uma reclamação.
+```{r}
+avaliacoes %>%
+    group_by(avaliador) %>% 
+    summarize(count=n()) %>% 
+    ggplot(aes(x=reorder(avaliador, count), y = count)) +
+    geom_bar(stat = "identity", colour="black", fill="purple") +
+    labs(x = "Avaliador", y = "Quantidade de Avaliações") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Podemos observar que dois alunos avaliaram 10 reclamações cada, que um aluno avaliou em torno de apenas 2 reclamações e que provavelmente em média cada aluno avaliou 6 ou 7 reclamações, mas novamente, vamos checar a média e mediana para ter certeza.
+```{r}
+avaliacoes %>% 
+    group_by(avaliador) %>%
+    count() %>%
+    ungroup() %>%
+    summarise(Média = mean(n), 
+              Mediana = median(n))
+```
+
+Como esperado após se ver o gráfico, em média cada aluno avaliou 6 reclamações.
+
+### Histograma das insatisfações
+
+Vamos checar a distribuição dos valores de insatisfação.
+```{r}
+ggplot(data = avaliacoes, mapping = aes(x = insatisfacao)) +
+    geom_histogram(fill = "purple", 
+                   colour = "black",
+                   binwidth = 1) +
+    labs(x = "Insatisfação", y = "Quantidade")
+```
+
+Podemos observar que a maioria das avaliações possuem níveis de insatisfação de 2 a 3, com um número considerável de avaliaçőes no nível 4 também. Poucas avaliações possuem nível de insatisfação 1 (pouco mais de 10). Vamos checar média e mediana.
+
+```{r}
+avaliacoes %>% 
+    summarise(Média = mean(insatisfacao), 
+              Mediana = median(insatisfacao))
+```
+
+Em média os avaliadores deram nível de insatisfação 3 para as reclamações avaliadas.
+
+### Níveis de insatisfação por avaliador
+
+Vamos checar os níveis de insatisfação por avaliador para verificar se existe algum avaliador que é "desbalanceado" e sempre dá a mesma nota ou notas parecidas (por exemplo, alguém que sempre avalia com nível de insatisfação 4-5 ou 1-2 enquanto os outros avaliam mais dispersamente).
+```{r}
+avaliacoes %>%
+    ggplot(aes(avaliador, insatisfacao, colour = avaliador)) +
+    geom_jitter() +
+    labs(x = "Avaliador", y = "Insatisfação") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    theme(legend.title = element_blank())
+```
+
+Podemos observar que os avaliadores dão diversas notas diferentes e que os pontos estão bem dispersos.
+
+### Níveis de insatisfação por reclamação
+
+Vamos checar os níveis de insatisfação por reclamação para verificar a dispersão desses pontos e a partir disso termos uma ideia de quão difícil é chegar a uma concordância entre os avaliadores.
+```{r}
+avaliacoes %>%
+    ggplot(aes(id_reclamacao, insatisfacao, colour = id_reclamacao)) +
+    geom_jitter() +
+    labs(x = "Reclamação", y = "Insatisfação") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    theme(legend.title = element_blank())
+```
+
+Podemos observar que existem alguns agrupamentos em certos níveis de insatisfação para cada avaliação, mas que mesmo assim o gráfico é bem disperso e isso pode ser uma indicação de que não é tão simples obter consenso no nível de insatisfação.
