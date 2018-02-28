@@ -43,6 +43,14 @@ reclamacoes_l = reclamacoes %>%
            value = "polaridade", 
            sentimento_op30, sentimento_sent)
 
+# Adicionando variáveis utilizadas na exploração dos dados
+# quantidade_palavas -> quantidade de palavras com pelo menos 2 caracteres. Lembrar que é diferente da variável que o analisador lexico retorna: palavras
+# quantidade_caixa_alta -> quantidade de palavras com pelo menos 2 caracteres em que todas são caixa alta.
+
+reclamacoes_l = reclamacoes_l %>%
+    mutate(quantidade_caixa_alta = str_count(reclamacoes_l$reclamacao, "\\b[A-Z\u00C0-\u00DC]{2,}\\b"),
+           quantidade_palavras = str_count(reclamacoes_l$reclamacao, "\\b[a-z\u00E0-\u00FCA-Z\u00C0-\u00DC]{2,}\\b"))
+
 ```
 
 Converte polaridades para escala 0-5
