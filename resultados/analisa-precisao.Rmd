@@ -114,7 +114,7 @@ tidy(modelo, conf.int = TRUE, conf.level = 0.95)
 glance(modelo)
 ```
 
-Regressão múltipla foi utilizada para analisar se o `lexico` e `palavras` tem uma associação significativa com o erro na estimativa de instatisfação da reclemação. Os resultados da regressão indicam que um modelo com os 2 preditores no formato Erro = -0.193686626*`lexico` + 0.004348164*`palavras` explicam 14,87% da variância da variável de resposta (R2 = 0.148749). `lexico`, medida como 0 se for o analizador lexico op30 ou 1 se for o lexico sent tem uma relação significativa com o erro (b = [-0.639301525;  0.25192827], IC com 95%), assim como `palavras` medida como quantidade de palavras que o lexico retornou (b = [0.003246448;  0.00544988], IC com 95%). O aumento de 1 unidade de `lexico` produz uma mudança de aproximadamente -0.19 no erro, já o aumento de 1 unidade de `palavras` produz uma mudança de aproximadamente 0.0043 no erro
+Regressão múltipla foi utilizada para analisar se o `lexico` e `palavras` tem uma associação significativa com o erro na estimativa de instatisfação da reclemação. Os resultados da regressão indicam que um modelo com os 2 preditores no formato Erro = -0.193686626*`lexico` + 0.004348164*`palavras` explicam 14,87% da variância da variável de resposta (R2 = 0.148749). `lexico`, medida como 0 se for o analizador léxico op30 ou 1 se for o léxico sent tem uma relação significativa com o erro (b = [-0.639301525;  0.25192827], IC com 95%), assim como `palavras` medida como quantidade de palavras que o lexico retornou (b = [0.003246448;  0.00544988], IC com 95%). O aumento de 1 unidade de `lexico` produz uma mudança de aproximadamente -0.19 no erro, já o aumento de 1 unidade de `palavras` produz uma mudança de aproximadamente 0.0043 no erro
 
 ```{r}
 modelo <- lm(erro ~ lexico + quantidade_palavras, data=reclamacoes_l)
@@ -124,7 +124,7 @@ tidy(modelo, conf.int = TRUE, conf.level = 0.95)
 glance(modelo)
 ```
 
-#TODO Análise
+Regressão múltipla foi utilizada para analisar se `lexico` e `quantidade_palavras` tem uma associação significativa com o erro na estimativa de instatisfação da reclemação. Os resultados da regressão indicam que um modelo com os 2 preditores no formato Erro = -0.193686626*`lexico` + 0.005087479*`quantidade_palavras` explicam 15.07% da variância da variável de resposta (R2 = 0.1507999). `lexico`, medida como/em [unidade ou o que é o 0 e o que é 1] tem uma relação significativa com o erro (b = [-0.638764414; 0.251391162], IC com 95%), assim como `quantidade_palavras` medida como quantidade de palavras com mais de 2 caracteres (b = [0.003808883;  0.006366075], IC com 95%). O aumento de 1 unidade de `lexico` produz uma mudança de aproximadamente -0.19 no erro, já um aumento de 1 unidade de `quantidade_palavras` produz uma mudança de aproximadamente 0.0051 no erro.
 
 ```{r}
 modelo <- lm(erro ~ lexico + quantidade_caixa_alta, data=reclamacoes_l)
