@@ -114,7 +114,7 @@ tidy(modelo, conf.int = TRUE, conf.level = 0.95)
 glance(modelo)
 ```
 
-#TODO Análise
+Regressão múltipla foi utilizada para analisar se o `lexico` e `palavras` tem uma associação significativa com o erro na estimativa de instatisfação da reclemação. Os resultados da regressão indicam que um modelo com os 2 preditores no formato Erro = -0.193686626*`lexico` + 0.004348164*`palavras` explicam 14,87% da variância da variável de resposta (R2 = 0.148749). `lexico`, medida como 0 se for o analizador lexico op30 ou 1 se for o lexico sent tem uma relação significativa com o erro (b = [-0.639301525;  0.25192827], IC com 95%), assim como `palavras` medida como quantidade de palavras que o lexico retornou (b = [0.003246448;  0.00544988], IC com 95%). O aumento de 1 unidade de `lexico` produz uma mudança de aproximadamente -0.19 no erro, já o aumento de 1 unidade de `palavras` produz uma mudança de aproximadamente 0.0043 no erro
 
 ```{r}
 modelo <- lm(erro ~ lexico + quantidade_palavras, data=reclamacoes_l)
