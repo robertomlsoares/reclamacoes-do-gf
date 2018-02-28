@@ -107,8 +107,34 @@ reclamacoes_l %>%
 Agora um modelo para responder sua pergunta.
 
 ```{r}
+modelo <- lm(erro ~ lexico + palavras, data=reclamacoes_l)
 
+tidy(modelo, conf.int = TRUE, conf.level = 0.95)
+
+glance(modelo)
 ```
+
+#TODO Análise
+
+```{r}
+modelo <- lm(erro ~ lexico + quantidade_palavras, data=reclamacoes_l)
+
+tidy(modelo, conf.int = TRUE, conf.level = 0.95)
+
+glance(modelo)
+```
+
+#TODO Análise
+
+```{r}
+modelo <- lm(erro ~ lexico + quantidade_caixa_alta, data=reclamacoes_l)
+
+tidy(modelo, conf.int = TRUE, conf.level = 0.95)
+
+glance(modelo)
+```
+
+#TODO Análise
 
 **Dica** - o texto de resultado que queremos produzir é algo como: 
 
